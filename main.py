@@ -321,7 +321,7 @@ async def create_image(request: Request, user_input: Annotated[str, Form()]):
 @app.post("/clear_memory")
 async def clear_memory():
     chat_log.clear()
-    chat_responses.clear()
+    chat_responses.clear()   # this clears the chat window, so we don't really need this here
     return {"message": "Memory cleared successfully"}
 
 @app.post("/clear_template")
