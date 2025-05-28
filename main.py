@@ -1,4 +1,7 @@
+import json
+
 from openai import OpenAI
+from tavily import TavilyClient
 import os
 from dotenv import load_dotenv
 from typing import Annotated
@@ -12,12 +15,17 @@ from mangum import Mangum
 
 from db import *
 from models import *
+from tools import *
 
 load_dotenv()
 
-# get key from .env file - we won't include this file to the GitHub repository
+# get keys from .env file - we won't include this file to the GitHub repository
 client = OpenAI(
     api_key=os.getenv('OPEN_API_SECRET_KEY')
+)
+
+tavily_client = TavilyClient(
+    api_key=os.getenv('TAVILY_API_KEY')
 )
 
 app = FastAPI()
@@ -28,16 +36,6 @@ user_dependency = Annotated[dict, Depends(get_current_user)]  # this is our JWT 
 
 handler = Mangum(app) # AWS expects a handler to hookup on to run our app
 templates = Jinja2Templates(directory="templates")
-
-
-# we want to be able to add a new system role after we clear the memory (aka chat log)
-chat_log = [{'role': 'system',
-             'content': 'Your primary job is as a Python coding expert and teacher.'
-           }]
-
-chat_responses = []
-
-
 
 # -------------------------------------------------------------------------------------
 # Here is the /token endpoint that calls the two authentication functions in models.py
@@ -217,9 +215,9 @@ async def change_password(request: Request,
             session.commit()
             msg = "Password Updated"
 
+    
     context = {"request": request, "user": user, "msg": msg}
     return templates.TemplateResponse("change_password.html", context)
-    
 """
 
 # -----------
@@ -259,9 +257,19 @@ async def delete_user(request: Request, username: str=Form(...), email: str=Form
         return templates.TemplateResponse("delete_user.html", context)
 
 
+# ---------------------------------------------------------------------------------------------------
+# Setting up memory with a list called chat_log and UI chat display with a list called chat_responses
+# ---------------------------------------------------------------------------------------------------
+
+chat_log = [{'role': 'system',
+             'content': 'Your primary job is as a Python coding expert and teacher.'
+           }]
+
+chat_responses = []
+
 # -------------------------------------------
- # Secured Resource Endpoints - The Actual App
- # -------------------------------------------
+# Secured Resource Endpoints - The Actual App
+# -------------------------------------------
 
 # ChatGPT 3.5-Turbo --------------------
 @app.get("/chat", response_class=HTMLResponse)
@@ -279,20 +287,59 @@ async def chat(request: Request, user_input: Annotated[str, Form()], temperature
     chat_log.append({'role': 'user', 'content': user_input})
     chat_responses.append(user_input)
 
-    chat_completion = client.chat.completions.create(
+    completion = client.chat.completions.create(
+
+        model="gpt-3.5-turbo",
         messages=chat_log,
         temperature=temperature,
-        model="gpt-3.5-turbo",
-     )
+        tools=tools,
+        tool_choice="auto"
+    )
 
-    bot_response = chat_completion.choices[0].message.content
-    chat_log.append({'role': 'assistant', 'content': bot_response})
-    chat_responses.append(bot_response)
-    # chat_responses is what we're iterating through in home.html
-    return templates.TemplateResponse("home.html", {'request': request, "chat_responses": chat_responses})
+    if completion.choices[0].message.tool_calls != None:
+
+        tool_call = completion.choices[0].message.tool_calls[0]
+        args = json.loads(tool_call.function.arguments)
+        weather_result = get_current_weather(args["latitude"], args['longitude'])
+
+        # provide the result back to the model
+
+        chat_log.append(completion.choices[0].message) # append model's function call message
+
+        chat_log.append(  # append the weather result message
+            {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": str(weather_result),
+            }
+        )
+
+       # ask for another completion
+
+        completion2 = client.chat.completions.create(
+
+            model="gpt-3.5-turbo",
+            messages=chat_log,
+            temperature=temperature,
+            tools=tools,
+        )
+
+        ai_response = completion2.choices[0].message.content
+        chat_log.append({'role': 'assistant', 'content': ai_response})
+        chat_responses.append(ai_response)
+
+        return templates.TemplateResponse("home.html", {'request': request, "chat_responses": chat_responses})
+
+    else:
+        ai_response = completion.choices[0].message.content
+        chat_log.append({'role': 'assistant', 'content': ai_response})
+        chat_responses.append(ai_response)
+
+        return templates.TemplateResponse("home.html", {'request': request, "chat_responses": chat_responses})
 
 
 # DALL-E ---------------------
+
 
 @app.get("/image", response_class=HTMLResponse)
 async def image_page(user: user_dependency, request: Request):
