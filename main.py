@@ -1,7 +1,5 @@
 import json
-
 from openai import OpenAI
-from tavily import TavilyClient
 import os
 from dotenv import load_dotenv
 from typing import Annotated
@@ -22,10 +20,6 @@ load_dotenv()
 # get keys from .env file - we won't include this file to the GitHub repository
 client = OpenAI(
     api_key=os.getenv('OPEN_API_SECRET_KEY')
-)
-
-tavily_client = TavilyClient(
-    api_key=os.getenv('TAVILY_API_KEY')
 )
 
 app = FastAPI()
