@@ -1,7 +1,8 @@
 An OpenAI function calling agent (as opposed to a ReAct agent) using the following: 
-Backend: FastAPI/SQL Model.
-Frontent: Jina2, Bootstrap, and fetch().
-Security: Oauth2 with password flow using JWT bearer tokens and a remote MariaDB user identity database hosted on a DigitalOcean VPS.
+
+1.Backend: FastAPI/SQL Model.
+2.Frontend: Jina2, Bootstrap, and fetch().
+3.Security: Oauth2 with password flow using JWT bearer tokens and a remote MariaDB user identity database hosted on a DigitalOcean VPS.
 
 
 This is a work in progress and will have multiple updates on a weekly basis.
@@ -13,3 +14,5 @@ Todo list for this week:
 2. Do some error handling to address when the LLM decides to make a function call with the wrong arguments.
 3. Get all the code out of main.py and organise it.
 4. Deploy to AWS lambda using Podman instead of a Zip file.
+
+P.S. Trying to keep it Hypermedia-Driven and RESTful
