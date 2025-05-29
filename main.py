@@ -134,12 +134,6 @@ async def login(request: Request, session: Session = db_dependency):
         return templates.TemplateResponse("login.html", context)
 
 
-# --------------------------------------------
-# Middleware - Resource Endpoint Authorization
-# --------------------------------------------
-
-# I want to implement the user authentication (get_current_user) here
-
 # ----------
 # Exceptions
 # ----------
@@ -173,46 +167,6 @@ async def logout(request: Request):
     response.delete_cookie(key="access_token")
     return response
 
-"""
-
-# ---------------
-# Change Password
-# ---------------
-
-@app.get("/change_password")
-async def change_password(request: Request):
-    user = await get_current_user(request)
-    if user is None:
-        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    context={"request": request, "user": user}
-    return templates.TemplateResponse("change_password.html", context)
-
-@app.put("/change_password")
-async def change_password(request: Request,
-                          username: str = Form(...),
-                          password: str = Form(...),
-                          password2:str = Form(...),
-                          session: Session = db_dependency):
-
-    user = await get_current_user(request)
-    if user is None:
-        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-
-    user_data = session.query(User).filter(User.username == username).first()
-
-    msg = "Invalid username or password"
-
-    if user_data is not None:
-        if username == user_data.username and verify_password(password, user_data.hashed_password):
-            user_data.hashed_password = get_password_hash(password2)
-            session.add(user_data)
-            session.commit()
-            msg = "Password Updated"
-
-    
-    context = {"request": request, "user": user, "msg": msg}
-    return templates.TemplateResponse("change_password.html", context)
-"""
 
 # -----------
 # Delete User
