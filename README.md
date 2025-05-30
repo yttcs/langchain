@@ -1,4 +1,4 @@
-An OpenAI function calling agent (as opposed to a ReAct agent) using the following: 
+### An OpenAI function calling agent (as opposed to a ReAct agent) using the following: 
 
 1.Backend: FastAPI/SQL Model.
 2.Frontend: Jina2, Bootstrap, and fetch().
